@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Web Text Editor - Monaco + Directory Access</title>
+    <link rel="stylesheet" href="/assets/style.css">
+    <!-- xterm.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <!-- xterm.js JS -->
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <!-- Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="sidebar" id="sidebar">
+        <div id="project-name" style="font-weight: bold; margin-bottom: 10px;"></div>
+        <div id="file-list"></div>
+    </div>
+    <div class="resizer" id="resizer"></div>
+    <div class="editor">
+        <div class="tabs"></div>
+        <button id="save-file" style="display: none;"></button>
+        <div id="editor-container">
+            <div id="monaco"></div>
+        </div>
+
+        <!-- Tambahkan resizer vertikal -->
+        <div id="terminal-resizer" class="hidden" style="height: 5px; cursor: ns-resize; background: #3d3d3d;"></div>
+
+        <!-- Container terminal -->
+        <div id="terminal-container" class="hidden" style="height: 200px; background: black;"></div>
+    </div>
+    <div id="spinner-overlay" style="
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="/assets/script.js"></script>
+</body>
+
+</html>

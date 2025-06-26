@@ -1,0 +1,176 @@
+body {
+    margin: 0;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: row;
+    min-width: 0;
+    height: 100vh;
+    overflow: hidden;
+    font-family: "Lexend", sans-serif;
+    background-color: black;
+}
+
+.sidebar {
+    width: 250px;
+    background: #1e272e;
+    color: white;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.file {
+    cursor: pointer;
+    padding: 5px;
+    margin-left: 10px;
+}
+
+.file:hover {
+    background-color: #34495e;
+}
+
+.resizer {
+    width: 5px;
+    background: #3d3d3d;
+    cursor: ew-resize;
+    height: 100vh;
+    flex-shrink: 0;
+}
+
+.editor {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.tabs {
+  display: flex;
+  background: #1e272e;
+  padding-left: 5px;
+  overflow-x: auto;
+  font-size: 14px;
+}
+
+.tab {
+  position: relative;
+  padding: 8px 24px 8px 12px;
+  margin-right: 4px;
+  background: #485460;
+  border-radius: 6px 6px 0 0;
+  font-size: 14px;
+  color: #d2dae2;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab:hover {
+  background: #dcdcdc;
+  color: #000;
+}
+
+.tab.active {
+  background: #1e272e;
+  color: white;
+  border-bottom: 2px solid #3498db;
+  /* font-weight: bold; */
+}
+
+.tab .close {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  font-size: 12px;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.tab .close:hover {
+  color: red;
+}
+
+.tabs::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 30px;
+  height: 100%;
+  pointer-events: none;
+}
+
+#editor-container {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+#monaco {
+    width: 100%;
+    height: 100%;
+}
+
+button {
+    margin-bottom: 10px;
+    background: #1abc9c;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #16a085;
+}
+
+ul {
+    list-style: none;
+    padding-left: 15px;
+    margin: 0;
+}
+
+.folder>span {
+    cursor: pointer;
+    display: block;
+    padding: 4px;
+    color: #ecf0f1;
+}
+
+.folder>span:hover {
+    background-color: #34495e;
+}
+
+.file {
+    padding-left: 5px;
+}
+
+#terminal-container.hidden {
+    display: none;
+}
+
+#terminal-toolbar button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.spinner {
+  border: 6px solid #1e272e;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.dragging {
+    opacity: 0.5;
+}
+
+#context-menu:hover {
+    background: #34495e;
+}
