@@ -8,6 +8,7 @@
     <!-- xterm.js CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <!-- jQuery -->
+     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- xterm.js JS -->
@@ -19,12 +20,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 </head>
 
 <body>
     <div class="sidebar" id="sidebar">
         <div id="project-name" style="font-weight: bold; margin-bottom: 10px;"></div>
         <div id="file-list"></div>
+        <div id="sidebar-settings">
+            <button id="settings-button" title="Pengaturan">⚙️</button>
+        </div>
     </div>
     <div class="resizer" id="resizer"></div>
     <div class="editor">
@@ -35,7 +41,7 @@
         </div>
 
         <!-- Tambahkan resizer vertikal -->
-        <div id="terminal-resizer" class="hidden" style="height: 1px; cursor: ns-resize; background: #333333;"></div>
+        <div id="terminal-resizer" class="hidden" style="height: 3px; cursor: ns-resize; background: #252525;"></div>
 
         <!-- Container terminal -->
         <div id="terminal-container" class="hidden" style="height: 200px; background: black;"></div>
@@ -51,7 +57,64 @@
     z-index: 9999;">
         <div class="spinner"></div>
     </div>
-
+    <!-- Modal Settings -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h5>Pengaturan Editor</h5>
+            <label for="theme-selector-modal">🎨 Pilih Tema:</label>
+            <select class="form-control" id="theme-selector-modal">
+            <option value="vs-dark">Dark</option>
+            <option value="vs">Light</option>
+            <option value="hc-black">High Contrast</option>
+            </select>
+            <button id="apply-settings" style="margin-top: 15px;border-radius: 10px;">Simpan</button>
+        </div>
+    </div>
+    <!-- Modal New File -->
+    <div id="new-file-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close new-file-close">&times;</span>
+            <h5>Buat File Baru</h5>
+            
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <input type="text" id="new-file-name" placeholder="contoh: index.html" class="form-control">
+                </div>
+                <div class="col-auto">
+                    <button id="create-new-file" style="border-radius: 10px;">Buat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Chat Sidebar -->
+   <div id="chat-sidebar">
+        <div class="row g-2 align-items-center p-2">
+            <div class="col">
+                <i class="bi bi-stars"></i> AI Assistant
+            </div>
+            <div class="col-auto">
+                <div id="chat-close" style="text-align: right; padding: 5px; cursor: pointer;"><i class="text-info bi bi-x"></i></div>
+            </div>
+        </div>
+        <div id="chat-content" style="flex: 1; overflow-y: auto; padding: 10px;"></div>
+        <div id="typing-indicator" style="padding: 0 10px 10px 10px; font-size: 13px; color: #aaa; display: none;">
+            AI sedang mengetik<span class="typing-dots">.</span>
+        </div>
+        <div id="chat-input-container" style="padding: 10px;">
+            <div id="quote-box" style="display: none; font-size: 13px; color: #aaa; padding: 5px; border-left: 3px solid #00cec9; margin-bottom: 5px;"></div>
+            <div class="row g-2 align-items-center p-2">
+                <div class="col">
+                    <textarea id="chat-input" class="form-control" placeholder="Tulis sesuatu..."></textarea>
+                </div>
+                <div class="col-auto">
+                    <button id="chat-send" class="btn btn-dark" type="button">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="/assets/script.js"></script>
 </body>
 

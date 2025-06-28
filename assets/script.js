@@ -2,7 +2,7 @@ let editor;
 const openedTabs = {}; // { filename: model }
 const fileHandles = {}; // { filename: FileSystemFileHandle }
 let currentDirectoryHandle = null;
-
+let currentQuote = '';
 // Load Monaco
 require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.34.1/min/vs' } });
 require(['vs/editor/editor.main'], function () {
@@ -11,6 +11,12 @@ require(['vs/editor/editor.main'], function () {
         language: 'plaintext',
         theme: 'vs-dark',
         automaticLayout: true
+    });
+
+    let mousePos = { x: 0, y: 0 };
+
+    editor.getDomNode().addEventListener('mouseup', function (e) {
+        mousePos = { x: e.clientX, y: e.clientY };
     });
 
      // Aktifkan Emmet untuk HTML dan CSS
@@ -28,6 +34,86 @@ require(['vs/editor/editor.main'], function () {
     editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => {
         editor.trigger('keyboard', 'cursorColumnSelectDown', {});
     });
+
+    let hintWidget = null;
+
+    function removeHintWidget() {
+        if (hintWidget) {
+            editor.removeContentWidget(hintWidget);
+            hintWidget = null;
+        }
+    }
+
+    editor.onDidChangeCursorSelection((e) => {
+    const selection = editor.getSelection();
+    const text = editor.getModel().getValueInRange(selection);
+
+    // Hapus jika tidak ada teks terpilih
+    if (!text.trim()) {
+        removeHintWidget();
+        return;
+    }
+
+    // Hapus hint lama sebelum membuat baru
+    removeHintWidget();
+
+    const id = 'myHintWidget';
+    const domNode = document.createElement('div');
+    domNode.innerHTML = '<i class="bi bi-stars"></i>';
+    domNode.title = 'Klik untuk lakukan aksi';
+    domNode.style.left = `${mousePos.x}px`;
+    domNode.style.top = `${mousePos.y}px`;
+    domNode.style.background = '#2d3436';
+    domNode.style.color = '#74b9ff';
+    domNode.style.padding = '3px 6px';
+    domNode.style.borderRadius = '4px';
+    domNode.style.cursor = 'pointer';
+    domNode.style.fontSize = '17px';
+    domNode.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+    domNode.style.userSelect = 'none';
+
+    function scrollToBottom() {
+        const chatContent = document.getElementById('chat-content');
+        chatContent.scrollTop = chatContent.scrollHeight;
+    }
+
+    function escapeHTML(str) {
+        return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function truncateText(text, maxLength = 100) {
+        return text.length > maxLength ? text.slice(0, maxLength) + '…' : text;
+    }
+
+    domNode.onclick = () => {
+        currentQuote = text; // tetap full, untuk dikirim nanti
+
+        const shortPreview = truncateText(text, 100); // tampilkan max 100 karakter
+        $('#quote-box').html(`<i class="bi bi-quote"></i> <pre style="margin: 0;">${escapeHTML(shortPreview)}</pre>`);
+        $('#quote-box').show();
+
+        showChatSidebar();
+        $('#chat-input').val('').trigger('input').focus();
+    };
+
+    hintWidget = {
+        getId: () => id,
+        getDomNode: () => domNode,
+        getPosition: () => {
+            return {
+                position: selection.getEndPosition(),
+                preference: [monaco.editor.ContentWidgetPositionPreference.BELOW]
+            };
+        }
+    };
+
+    editor.addContentWidget(hintWidget);
+    }); 
 });
 
 $(document).on('click', '.folder > .folder-toggle', function () {
@@ -41,7 +127,7 @@ function getLanguageFromFilename(filename) {
     if (filename.endsWith('.env')) return 'env';
     if (filename.endsWith('.md')) return 'markdown';
     if (filename.endsWith('.json')) return 'json';
-    return 'plaintext';
+    return 'javascript';
 }
 
 async function getFilesFromDirectory(dirHandle, path = '') {
@@ -77,6 +163,7 @@ async function openDirectory() {
     } catch (e) {
         console.error('Directory access error:', e);
     } finally {
+        $('#settings-button').show();
         hideSpinner();
     }
 }
@@ -154,6 +241,8 @@ $(document).ready(function () {
     const sidebar = document.getElementById('sidebar');
     const resizer = document.getElementById('resizer');
     let isResizing = false;
+
+    $('#settings-button').hide();
 
     resizer.addEventListener('mousedown', function () {
         isResizing = true;
@@ -436,51 +525,61 @@ document.addEventListener('keydown', function (e) {
 });
 
 
-async function createNewFile() {
-    const filename = prompt("Masukkan nama file (mis. newfile.txt):");
-    if (!filename) return;
-
-    const fullPath = filename;
-
-    if (openedTabs[fullPath]) {
-        openTab(fullPath);
-        return;
-    }
-
-    try {
-        // Langsung minta lokasi simpan
-        const newHandle = await window.showSaveFilePicker({
-            suggestedName: filename,
-            types: [
-                {
-                    description: 'Text Files',
-                    accept: {
-                        'text/plain': ['.txt', '.js', '.json', '.html', '.css', '.md']
-                    }
-                }
-            ]
-        });
-        fileHandles[fullPath] = newHandle;
-
-        const lang = getLanguageFromFilename(fullPath);
-        const model = monaco.editor.createModel('', lang);
-        openedTabs[fullPath] = model;
-
-        $('.tabs').append(`
-            <div class="tab" data-filename="${fullPath}">
-                ${filename}
-                <span class="close">&times;</span>
-            </div>
-        `);
-
-        $('.tab').removeClass('active');
-        $(`.tab[data-filename="${fullPath}"]`).addClass('active');
-        editor.setModel(model);
-
-    } catch (err) {
-        console.error('Gagal membuat file baru:', err);
-    }
+function createNewFile() {
+  $('#new-file-name').val('');
+  $('#new-file-modal').fadeIn();
 }
+
+$('.new-file-close').on('click', function () {
+  $('#new-file-modal').fadeOut();
+});
+
+$('#create-new-file').on('click', async function () {
+  const filename = $('#new-file-name').val().trim();
+  if (!filename) return;
+
+  const fullPath = filename;
+
+  if (openedTabs[fullPath]) {
+    openTab(fullPath);
+    $('#new-file-modal').fadeOut();
+    return;
+  }
+
+  try {
+    const newHandle = await window.showSaveFilePicker({
+      suggestedName: filename,
+      types: [{
+        description: 'Text Files',
+        accept: {
+          'text/plain': ['.txt', '.js', '.json', '.html', '.css', '.md']
+        }
+      }]
+    });
+
+    fileHandles[fullPath] = newHandle;
+
+    const lang = getLanguageFromFilename(fullPath);
+    const model = monaco.editor.createModel('', lang);
+    openedTabs[fullPath] = model;
+
+    $('.tabs').append(`
+      <div class="tab" data-filename="${fullPath}">
+        ${filename}
+        <span class="close">&times;</span>
+      </div>
+    `);
+
+    $('.tab').removeClass('active');
+    $(`.tab[data-filename="${fullPath}"]`).addClass('active');
+    editor.setModel(model);
+
+  } catch (err) {
+    console.error('❌ Gagal membuat file baru:', err);
+  } finally {
+    $('#new-file-modal').fadeOut();
+  }
+});
 
 function getOpenedFolders() {
     const opened = [];
@@ -642,7 +741,210 @@ $(document).on('click', function () {
   tabContextTarget = null;
 });
 
-contextMenu.on('click', function () {
-    contextMenu.hide();
-    createNewFile();
+contextMenu.on('click', function (e) {
+  // Jangan lakukan apapun jika bukan klik langsung di item menu
+  if (!$(e.target).hasClass('ctx-new-file')) return;
+  createNewFile();
 });
+
+// Buka modal saat tombol settings ditekan
+$('#settings-button').on('click', function () {
+  $('#settings-modal').fadeIn();
+});
+
+// Tutup modal saat tombol close diklik
+$('.modal-close').on('click', function () {
+  $('#settings-modal').fadeOut();
+});
+
+// Tutup modal saat klik di luar modal-content
+$(window).on('click', function (e) {
+  if ($(e.target).is('#settings-modal')) {
+    $('#settings-modal').fadeOut();
+  }
+});
+
+// Simpan ke localStorage saat apply
+$('#apply-settings').on('click', function () {
+  const selectedTheme = $('#theme-selector-modal').val();
+  localStorage.setItem('editor-theme', selectedTheme);
+  monaco.editor.setTheme(selectedTheme);
+  $('#settings-modal').fadeOut();
+});
+
+// Terapkan tema dari localStorage saat load
+const savedTheme = localStorage.getItem('editor-theme');
+if (savedTheme) {
+    setTimeout(() => {
+        monaco.editor.setTheme(savedTheme);
+        $('#theme-selector-modal').val(savedTheme);
+  }, 2000); // set dropdown sesuai tema tersimpan
+}
+
+// Tampilkan chat sidebar saat Ctrl + B ditekan
+let flagOpenChat = false;
+document.addEventListener('keydown', function (e) {
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const isCtrlB = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'b';
+
+  if (isCtrlB) {
+    e.preventDefault();
+    if (flagOpenChat == true) {
+        hideChatSidebar();
+        flagOpenChat = false;
+        return;
+    }else{
+        showChatSidebar();
+        $('#chat-input').focus();
+        flagOpenChat = true;
+    }
+  }
+});
+
+$('#chat-close').on('click', function () {
+  hideChatSidebar();
+});
+
+function showChatSidebar() {
+  $('#chat-sidebar').addClass('show');
+}
+
+function hideChatSidebar() {
+  $('#chat-sidebar').removeClass('show');
+}
+
+function escapeHTML(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function scrollToBottom() {
+    const chatContent = document.getElementById('chat-content');
+    chatContent.scrollTop = chatContent.scrollHeight;
+}
+
+$('#chat-send').on('click', sendChatMessage);
+let chatHistory = [
+  {
+    role: 'user',
+    parts: [{
+      text: `Kamu adalah asisten terbaik saya. 
+        Jawablah setiap pertanyaan dengan ramah, ringkas, dan jelas. Jika pertanyaannya berupa kode, beri penjelasan yang mudah dipahami oleh pemula.
+        Jika ada yang bertanya nama kamu adalah AI Super Editor diciptakan oleh tim terbaik
+        `
+    }]
+  }
+];
+
+async function sendChatMessage() {
+  const message = $('#chat-input').val().trim();
+  if (!message) return;
+
+  let html = '';
+  let fullPrompt = '';
+
+  if (currentQuote) {
+    const quoteHTML = `
+      <div style="font-size: 12px; color: #888; margin-bottom: 5px;">
+        <i class="bi bi-quote"></i>
+        <pre style="background: #2f3640; padding: 5px; border-radius: 4px; color: #dcdde1;">${escapeHTML(currentQuote)}</pre>
+      </div>
+    `;
+    html += quoteHTML;
+    fullPrompt += `Berikan penjelasan dari kode berikut:\n${currentQuote}\n\n`;
+  }
+
+  html += `<div>${escapeHTML(message)}</div>`;
+  fullPrompt += message;
+
+  // Tampilkan pesan pengguna
+  $('#chat-content').append(`
+    <div style="margin-bottom: 10px;padding:10px;background:#104d63; border-radius: 4px; color: #fff;">
+      ${html}
+    </div>
+  `);
+
+  $('#chat-input').val('').trigger('input');
+  $('#quote-box').hide();
+  currentQuote = '';
+
+  const chatContent = document.getElementById('chat-content');
+  chatContent.scrollTop = chatContent.scrollHeight;
+
+  // Loading typing effect
+  const loadingId = 'loading-' + Date.now();
+  $('#chat-content').append(`
+    <div id="${loadingId}" style="margin-bottom: 10px; color: #aaa;">
+      <span style="color:#00cec9;">AI Assistant</span>
+      <span class="typing-indicator"><span>.</span><span>.</span><span>.</span></span>
+    </div>
+  `);
+  chatContent.scrollTop = chatContent.scrollHeight;
+
+  // Tambahkan ke history
+  chatHistory.push({
+    role: 'user',
+    parts: [{ text: fullPrompt }]
+  });
+
+  const aiResponse = await sendToGemini(chatHistory);
+
+  // Setelah dapat respons
+  chatHistory.push({
+    role: 'model',
+    parts: [{ text: aiResponse }]
+  });
+
+  const parsedHTML = marked.parse(aiResponse);
+
+  $(`#${loadingId}`).replaceWith(`
+    <div style="margin-bottom: 10px; background: #1e272e; padding: 10px; border-radius: 4px; color: #dfe6e9;">
+      <span style="color:#00cec9;">AI Assistant</span><br>${parsedHTML}
+    </div>
+  `);
+
+  chatContent.scrollTop = chatContent.scrollHeight;
+}
+
+async function sendToGemini(history) {
+  const apiKey = 'AIzaSyCWcjAHwGaJS2kGZv2N61518jC9_ysAZG0';
+  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: history })
+  });
+
+  const data = await response.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '(Tidak ada respons)';
+}
+
+$('#chat-input').on('keydown', function (e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
+
+// Escape function untuk aman di HTML
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showTyping() {
+  $('#typing-indicator').fadeIn();
+}
+
+function hideTyping() {
+  $('#typing-indicator').fadeOut();
+}
