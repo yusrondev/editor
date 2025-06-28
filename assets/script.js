@@ -12,6 +12,22 @@ require(['vs/editor/editor.main'], function () {
         theme: 'vs-dark',
         automaticLayout: true
     });
+
+     // Aktifkan Emmet untuk HTML dan CSS
+    window.emmetMonaco.emmetHTML(monaco);
+    window.emmetMonaco.emmetCSS(monaco);
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.UpArrow, () => {
+        editor.trigger('keyboard', 'editor.action.moveLinesUpAction', {});
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.DownArrow, () => {
+        editor.trigger('keyboard', 'editor.action.moveLinesDownAction', {});
+    });
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () => {
+        editor.trigger('keyboard', 'cursorColumnSelectUp', {});
+    });
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => {
+        editor.trigger('keyboard', 'cursorColumnSelectDown', {});
+    });
 });
 
 $(document).on('click', '.folder > .folder-toggle', function () {
@@ -49,7 +65,7 @@ async function openDirectory() {
     try {
         const dirHandle = await window.showDirectoryPicker();
         currentDirectoryHandle = dirHandle; // ⬅️ Simpan di global
-        document.getElementById('project-name').textContent = `📁 ${dirHandle.name}`;
+        document.getElementById('project-name').textContent = dirHandle.name;
         showSpinner();
 
         const files = await getFilesFromDirectory(dirHandle);
@@ -218,10 +234,10 @@ function renderTree(tree, basePath = '') {
         } else {
             // Folder
             const folder = $(`
-        <li class="folder">
-          <span class="folder-toggle">📁 ${name}</span>
-        </li>
-      `);
+            <li class="folder" data-path="${fullPath}">
+                <span class="folder-toggle">📁 ${name}</span>
+            </li>
+            `);
             const children = renderTree(tree[name], fullPath);
             children.hide(); // collapsed by default
             folder.append(children);
@@ -235,7 +251,7 @@ function renderTree(tree, basePath = '') {
 $(document).on('click', '#save-file', async function () {
     const activeTab = $('.tab.active');
     if (!activeTab.length) {
-        alert("No file open");
+        console.log("❌ No file open");
         return;
     }
 
@@ -244,15 +260,15 @@ $(document).on('click', '#save-file', async function () {
     let fileHandle = fileHandles[filename];
 
     if (!model) {
-        alert("❌ No content to save.");
+        console.log("❌ No content to save.");
         return;
     }
 
     try {
-        // Jika belum punya handle, minta user pilih lokasi
         if (!fileHandle) {
+            console.warn("⚠️ No fileHandle found for", filename);
             const newHandle = await window.showSaveFilePicker({
-                suggestedName: filename,
+                suggestedName: filename.split('/').pop(), // hanya nama file
                 types: [
                     {
                         description: 'Text Files',
@@ -267,32 +283,27 @@ $(document).on('click', '#save-file', async function () {
             fileHandle = newHandle;
         }
 
-        try {
-            const writable = await fileHandle.createWritable();
-            await writable.write(model.getValue());
-            await writable.close();
+        const writable = await fileHandle.createWritable();
+        await writable.write(model.getValue());
+        await writable.close();
 
-            alert(`✅ Saved: ${filename}`);
+        console.log(`✅ Saved: ${filename}`);
 
-            // Reload sidebar
-            if (currentDirectoryHandle) {
-                const files = await getFilesFromDirectory(currentDirectoryHandle);
-                $('#file-list').empty();
-                const tree = buildTreeFromPaths(files);
-                const treeDOM = renderTree(tree);
-                $('#file-list').append(treeDOM);
-            }
+        // Refresh file tree jika ada folder terbuka
+        if (currentDirectoryHandle) {
+            const opened = getOpenedFolders();
+            const files = await getFilesFromDirectory(currentDirectoryHandle);
+            $('#file-list').empty();
+            const tree = buildTreeFromPaths(files);
+            const treeDOM = renderTree(tree);
+            $('#file-list').append(treeDOM);
+            restoreOpenedFolders(opened);
+        }
 
-        } catch (err) {
-            console.error("❌ Save failed", err);
-            alert("❌ Failed to save file.");
-        } 
     } catch (err) {
-        console.error("Save failed", err);
-        alert("❌ Failed to save file.");
+        console.error("❌ Failed to save:", err);
     }
 });
-
 
 $(document).on('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -377,10 +388,11 @@ document.addEventListener('keydown', function (e) {
         $('#terminal-container, #terminal-resizer').toggleClass('hidden');
         $('#toggle-terminal').html(isHidden ? '&#x2013;' : '+');
         if (!isHidden) {
-            term.blur();
-        } else {
-            term.focus();
-        }
+        term.blur();
+    } else {
+        term.focus();
+        fitAddon.fit(); // Panggil ulang di sini agar resize sukses
+    }
     }
 });
 
@@ -424,34 +436,72 @@ document.addEventListener('keydown', function (e) {
 });
 
 
-function createNewFile() {
+async function createNewFile() {
     const filename = prompt("Masukkan nama file (mis. newfile.txt):");
     if (!filename) return;
 
-    const fullPath = filename; // bisa lebih kompleks kalau di dalam folder
+    const fullPath = filename;
 
     if (openedTabs[fullPath]) {
         openTab(fullPath);
         return;
     }
 
-    const lang = getLanguageFromFilename(fullPath);
-    const model = monaco.editor.createModel('', lang);
-    openedTabs[fullPath] = model;
+    try {
+        // Langsung minta lokasi simpan
+        const newHandle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [
+                {
+                    description: 'Text Files',
+                    accept: {
+                        'text/plain': ['.txt', '.js', '.json', '.html', '.css', '.md']
+                    }
+                }
+            ]
+        });
+        fileHandles[fullPath] = newHandle;
 
-    // penting: jangan tambahkan ke fileHandles karena ini file baru
-    $('.tabs').append(`
-        <div class="tab" data-filename="${fullPath}">
-            ${filename}
-            <span class="close">&times;</span>
-        </div>
-    `);
+        const lang = getLanguageFromFilename(fullPath);
+        const model = monaco.editor.createModel('', lang);
+        openedTabs[fullPath] = model;
 
-    $('.tab').removeClass('active');
-    $(`.tab[data-filename="${fullPath}"]`).addClass('active');
-    editor.setModel(model);
+        $('.tabs').append(`
+            <div class="tab" data-filename="${fullPath}">
+                ${filename}
+                <span class="close">&times;</span>
+            </div>
+        `);
+
+        $('.tab').removeClass('active');
+        $(`.tab[data-filename="${fullPath}"]`).addClass('active');
+        editor.setModel(model);
+
+    } catch (err) {
+        console.error('Gagal membuat file baru:', err);
+    }
 }
 
+function getOpenedFolders() {
+    const opened = [];
+    $('#file-list .folder ul:visible').each(function () {
+        const folderLi = $(this).closest('.folder');
+        const path = folderLi.data('path');
+        if (path) {
+            opened.push(path);
+        }
+    });
+    return opened;
+}
+
+function restoreOpenedFolders(openedFolders) {
+    $('#file-list .folder').each(function () {
+        const path = $(this).data('path');
+        if (openedFolders.includes(path)) {
+            $(this).children('ul').show(); // buka kembali
+        }
+    });
+}
 
 // Buat context menu custom
 const contextMenu = $('<div id="context-menu"></div>').css({
@@ -466,9 +516,64 @@ const contextMenu = $('<div id="context-menu"></div>').css({
   fontSize: '14px',
   cursor: 'pointer'
 });
+
+const tabContextMenu = $('<div id="tab-context-menu"></div>').css({
+  position: 'absolute',
+  display: 'none',
+  background: '#2c3e50',
+  color: 'white',
+  padding: '5px 0',
+  borderRadius: '4px',
+  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+  zIndex: 10000,
+  fontSize: '14px',
+  minWidth: '180px'
+});
+tabContextMenu.append(`
+  <div class="tab-menu-item" data-action="close-others" style="padding: 5px 15px; cursor: pointer;">🔀 Close Other Tabs</div>
+  <div class="tab-menu-item" data-action="close-left" style="padding: 5px 15px; cursor: pointer;">⬅️ Close Tabs to the Left</div>
+  <div class="tab-menu-item" data-action="close-right" style="padding: 5px 15px; cursor: pointer;">➡️ Close Tabs to the Right</div>
+  <div class="tab-menu-item" data-action="close-all" style="padding: 5px 15px; cursor: pointer;">🧹 Close All Tabs</div>
+`);
+
+$('body').append(tabContextMenu);
+
 $('body').append(contextMenu);
 
 let contextTarget = null; // untuk tahu file/folder yang diklik
+let tabContextTarget = null;
+
+$(document).on('contextmenu', '.tab', function (e) {
+  e.preventDefault();
+  tabContextTarget = $(this);
+  tabContextMenu.css({ top: e.pageY, left: e.pageX }).show();
+});
+
+$(document).on('click', '.tab-menu-item', function () {
+  const action = $(this).data('action');
+  const allTabs = $('.tab');
+  const index = tabContextTarget ? allTabs.index(tabContextTarget) : -1;
+
+  if (action === 'close-others' && index !== -1) {
+    allTabs.each(function (i) {
+      if (i !== index) $(this).find('.close').click();
+    });
+  }
+
+  if (action === 'close-left' && index !== -1) {
+    allTabs.slice(0, index).find('.close').click();
+  }
+
+  if (action === 'close-right' && index !== -1) {
+    allTabs.slice(index + 1).find('.close').click();
+  }
+
+  if (action === 'close-all') {
+    allTabs.find('.close').click();
+  }
+
+  tabContextMenu.hide();
+});
 
 $('#sidebar').on('contextmenu', function (e) {
   e.preventDefault();
@@ -533,6 +638,8 @@ $(document).on('click', '.ctx-delete-file', async function () {
 $(document).on('click', function () {
   contextMenu.hide();
   contextTarget = null;
+  tabContextMenu.hide();
+  tabContextTarget = null;
 });
 
 contextMenu.on('click', function () {

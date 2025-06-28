@@ -11,13 +11,32 @@ body {
 }
 
 .sidebar {
-    width: 250px;
-    background: #1e272e;
+    background: #0b0d0e;
     color: white;
     padding: 10px;
     box-sizing: border-box;
     overflow-y: auto;
+    font-size: 13px;
     flex-shrink: 0;
+    font-weight: normal !important;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #1a1c1e; /* warna latar belakang track */
+    border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #444; /* warna thumb */
+    border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #666; /* warna thumb saat hover */
 }
 
 .file {
@@ -31,8 +50,8 @@ body {
 }
 
 .resizer {
-    width: 5px;
-    background: #3d3d3d;
+    width: 1px;
+    background: #333333;
     cursor: ew-resize;
     height: 100vh;
     flex-shrink: 0;
@@ -47,7 +66,7 @@ body {
 
 .tabs {
   display: flex;
-  background: #1e272e;
+  background: #0b0d0e;
   padding-left: 5px;
   overflow-x: auto;
   font-size: 14px;
@@ -71,7 +90,7 @@ body {
 }
 
 .tab.active {
-  background: #1e272e;
+  background: #0b0d0e;
   color: white;
   border-bottom: 2px solid #3498db;
   /* font-weight: bold; */
@@ -155,7 +174,7 @@ ul {
 }
 
 .spinner {
-  border: 6px solid #1e272e;
+  border: 6px solid #0b0d0e;
   border-top: 6px solid #3498db;
   border-radius: 50%;
   width: 20px;
