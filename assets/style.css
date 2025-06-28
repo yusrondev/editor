@@ -9,6 +9,10 @@ body {
     background-color: black;
 }
 
+#monaco{
+    background: #1e1e1e !important;
+}
+
 #chat-sidebar {
   display: flex;
   flex-direction: column;
@@ -111,9 +115,9 @@ ol,ul{
 
 #sidebar-settings {
     position: absolute;
-    bottom: 10px;
     text-align: center;
     z-index: 10;
+    bottom: 0;
 }
 
 #settings-button {
