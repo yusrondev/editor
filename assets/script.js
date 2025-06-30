@@ -124,7 +124,7 @@ function getLanguageFromFilename(filename) {
     if (filename.endsWith('.js')) return 'javascript';
     if (filename.endsWith('.html')) return 'html';
     if (filename.endsWith('.css')) return 'css';
-    if (filename.endsWith('.env')) return 'env';
+    if (filename.endsWith('.env')) return 'markdown';
     if (filename.endsWith('.md')) return 'markdown';
     if (filename.endsWith('.json')) return 'json';
     return 'javascript';
@@ -151,7 +151,7 @@ async function openDirectory() {
     try {
         const dirHandle = await window.showDirectoryPicker();
         currentDirectoryHandle = dirHandle; // ⬅️ Simpan di global
-        document.getElementById('project-name').textContent = dirHandle.name;
+        document.getElementById('project-name').textContent = dirHandle.name.toUpperCase();
         showSpinner();
 
         const files = await getFilesFromDirectory(dirHandle);
@@ -184,7 +184,7 @@ function openTab(filename) {
         const displayName = filename.split('/').pop();
         $('.tabs').append(`
           <div class="tab" data-filename="${filename}">
-            ${displayName}
+            <img src="${getFileIcon(displayName)}" style='width:14px;margin-right:5px'> ${displayName}
             <span class="close">&times;</span>
           </div>
         `);
@@ -271,19 +271,19 @@ function getFileIcon(filename) {
     const ext = filename.split('.').pop().toLowerCase();
 
     const icons = {
-        js: '📄',
-        ts: '📘',
-        html: '🌐',
-        css: '🎨',
-        md: '📝',
-        json: '📦',
-        png: '🖼️',
-        jpg: '🖼️',
-        jpeg: '🖼️',
-        gif: '🖼️',
-        svg: '🖼️',
-        txt: '📄',
-        default: '📄'
+        js: '/assets/icons/js.png',
+        ts: '/assets/icons/ts.png',
+        html: '/assets/icons/html.png',
+        css: '/assets/icons/paint.png',
+        md: '/assets/icons/file.png',
+        json: '/assets/icons/json.png',
+        png: '/assets/icons/photo.png',
+        jpg: '/assets/icons/photo.png',
+        jpeg: '/assets/icons/photo.png',
+        gif: '/assets/icons/photo.png',
+        svg: '/assets/icons/photo.png',
+        txt: '/assets/icons/file.png',
+        default: '/assets/icons/file.png'
     };
 
     return icons[ext] || icons.default;
@@ -316,7 +316,7 @@ function renderTree(tree, basePath = '') {
 
         if (tree[name] === null) {
             // File
-            const icon = getFileIcon(name);
+            const icon = `<img src="${getFileIcon(name)}" style='width:16px'>`;
             const file = $(`<li class="file" data-filename="${fullPath}">${icon} ${name}</li>`);
 
             ul.append(file);
@@ -324,7 +324,7 @@ function renderTree(tree, basePath = '') {
             // Folder
             const folder = $(`
             <li class="folder" data-path="${fullPath}">
-                <span class="folder-toggle">📁 ${name}</span>
+                <span class="folder-toggle"><img src='/assets/icons/folder.png' width='16px'> ${name}</span>
             </li>
             `);
             const children = renderTree(tree[name], fullPath);
@@ -834,7 +834,8 @@ let chatHistory = [
     parts: [{
       text: `Kamu adalah asisten terbaik saya. 
         Jawablah setiap pertanyaan dengan ramah, ringkas, dan jelas. Jika pertanyaannya berupa kode, beri penjelasan yang mudah dipahami oleh pemula.
-        Jika ada yang bertanya nama kamu adalah AI Super Editor diciptakan oleh tim terbaik
+        Jika ada yang bertanya nama kamu adalah AI Super Editor diciptakan oleh tim terbaik.
+        Jawablah pertanyaan dengan format typography yang rapi, dengan emoji juga boleh agar memperindah jawaban
         `
     }]
   }

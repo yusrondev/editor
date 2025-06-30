@@ -69,6 +69,7 @@ body {
     font-weight: normal !important;
     position: relative;
     height: 100vh;
+    /* width: 250px !important; */
     padding-bottom: 60px;
 }
 
@@ -109,8 +110,18 @@ body {
   color: white;
 }
 
-ol,ul{
-    padding-left: 0px !important;
+#file-list > ul {
+  padding-left: 15px;
+}
+
+.folder > ul > li{
+  padding-left: 0px !important;
+  margin-left: -14px !important;
+}
+
+.file{
+  margin-left: 5px !important;
+  padding-left: 0 !important;
 }
 
 #sidebar-settings {
@@ -350,4 +361,8 @@ ul {
   0% { opacity: 0.2; }
   20% { opacity: 1; }
   100% { opacity: 0.2; }
+}
+
+code{
+  color: #00cec9 !important;
 }
