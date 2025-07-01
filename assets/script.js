@@ -147,6 +147,8 @@ async function getFilesFromDirectory(dirHandle, path = '') {
     return files;
 }
 
+let allFiles = [];
+
 async function openDirectory() {
     try {
         const dirHandle = await window.showDirectoryPicker();
@@ -155,6 +157,7 @@ async function openDirectory() {
         showSpinner();
 
         const files = await getFilesFromDirectory(dirHandle);
+        allFiles = Object.keys(files); 
         $('#file-list').empty();
 
         const tree = buildTreeFromPaths(files);
@@ -209,6 +212,7 @@ function openTab(filename) {
 $(document).on('click', '.file', function () {
     const filename = $(this).data('filename');
     openTab(filename);
+    setActiveFileInSidebar(filename); // Tambahkan baris ini
 });
 
 $(document).on('click', '.tab', function (e) {
@@ -264,6 +268,10 @@ $(document).ready(function () {
             isResizing = false;
             document.body.style.cursor = '';
         }
+    });
+
+    $('#collapse-all-button').on('click', function () {
+        $('#file-list .folder ul').slideUp(150); // Sembunyikan semua folder yang terbuka
     });
 });
 
@@ -333,6 +341,8 @@ function renderTree(tree, basePath = '') {
             ul.append(folder);
         }
     }
+
+    $('#collapse-all-button').show();
 
     return ul;
 }
@@ -833,9 +843,11 @@ let chatHistory = [
     role: 'user',
     parts: [{
       text: `Kamu adalah asisten terbaik saya. 
-        Jawablah setiap pertanyaan dengan ramah, ringkas, dan jelas. Jika pertanyaannya berupa kode, beri penjelasan yang mudah dipahami oleh pemula.
+        Jawablah setiap pertanyaan dengan ramah, ringkas, dan jelas. Jika pertanyaannya berupa kode, 
+        jawab to the point, tanpa belibet
         Jika ada yang bertanya nama kamu adalah AI Super Editor diciptakan oleh tim terbaik.
         Jawablah pertanyaan dengan format typography yang rapi, dengan emoji juga boleh agar memperindah jawaban
+        berikan tombol copy untuk salin jawaban dari ai khusus jawaban bentuk code, dan buat tombol sederhana dan kecil
         `
     }]
   }
@@ -852,7 +864,7 @@ async function sendChatMessage() {
     const quoteHTML = `
       <div style="font-size: 12px; color: #888; margin-bottom: 5px;">
         <i class="bi bi-quote"></i>
-        <pre style="background: #2f3640; padding: 5px; border-radius: 4px; color: #dcdde1;">${escapeHTML(currentQuote)}</pre>
+        <pre style="border:2px dashed #3b839d; padding: 5px; border-radius: 4px; color: #dcdde1;">${escapeHTML(currentQuote)}</pre>
       </div>
     `;
     html += quoteHTML;
@@ -876,11 +888,11 @@ async function sendChatMessage() {
   const chatContent = document.getElementById('chat-content');
   chatContent.scrollTop = chatContent.scrollHeight;
 
-  // Loading typing effect
+  // Loading indicator
   const loadingId = 'loading-' + Date.now();
   $('#chat-content').append(`
     <div id="${loadingId}" style="margin-bottom: 10px; color: #aaa;">
-      <span style="color:#00cec9;">AI Assistant</span>
+      <span style="color:#00cec9;font-weight:bold">AI Assistant</span>
       <span class="typing-indicator"><span>.</span><span>.</span><span>.</span></span>
     </div>
   `);
@@ -893,18 +905,14 @@ async function sendChatMessage() {
   });
 
   const aiResponse = await sendToGemini(chatHistory);
+  $(`#${loadingId}`).remove();
 
-  // Setelah dapat respons
-  chatHistory.push({
-    role: 'model',
-    parts: [{ text: aiResponse }]
-  });
-
-  const parsedHTML = marked.parse(aiResponse);
-
-  $(`#${loadingId}`).replaceWith(`
+  // Tampilkan respons AI langsung sebagai HTML dari markdown
+  const responseHTML = marked.parse(aiResponse);
+  $('#chat-content').append(`
     <div style="margin-bottom: 10px; background: #1e272e; padding: 10px; border-radius: 4px; color: #dfe6e9;">
-      <span style="color:#00cec9;">AI Assistant</span><br>${parsedHTML}
+      <span style="color:#00cec9;font-weight:bold">AI Assistant</span><br>
+      <div class="ai-response-text" style="margin-top:5px;">${responseHTML}</div>
     </div>
   `);
 
@@ -949,3 +957,160 @@ function showTyping() {
 function hideTyping() {
   $('#typing-indicator').fadeOut();
 }
+
+// Tambahkan elemen HTML untuk input pencarian
+$('body').append(`
+    <div id="file-search-modal" style="
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10001;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Lexend', sans-serif;
+        ">
+        <div style="
+            position: relative;
+            width: 400px;
+            max-width: 90%;
+            background-color: #1e272e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            color: white;
+        ">
+            <!-- Tombol close pojok kanan -->
+            <button id="file-search-close" style="
+            position: absolute;
+            top: -13px;
+            right: -7px;
+            background: transparent;
+            border: none;
+            color: #bbb;
+            font-size: 18px;
+            cursor: pointer;
+            " title="Tutup">&times;</button>
+
+            <input type="text" id="file-search-input" placeholder="Cari file..." style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #2f3640;
+            color: white;
+            outline: none;
+            font-size: 14px;
+            ">
+
+            <ul id="file-search-results" style="
+            list-style: none;
+            padding: 0;
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            "></ul>
+        </div>
+    </div>
+
+`);
+
+$('#file-search-modal').hide();
+
+// Fungsi untuk menampilkan modal pencarian
+function showFileSearchModal() {
+    $('#file-search-modal').fadeIn();
+    $('#file-search-input').val('').focus();
+    $('#file-search-results').empty();
+
+    $('#file-search-input').off('input').on('input', function () {
+        const query = $(this).val().toLowerCase();
+
+        const results = allFiles.filter(filename =>
+            filename.toLowerCase().includes(query) &&
+            !filename.includes('node_modules') &&
+            !filename.includes('.git')
+        );
+
+        $('#file-search-results').empty();
+        results.forEach(filename => {
+            $('#file-search-results').append(`<li data-filename="${filename}">${filename}</li>`);
+        });
+    });
+}
+
+function openFolderInSidebar(filePath) {
+    const pathParts = filePath.split('/');
+    pathParts.pop(); // Hapus nama file
+    let currentPath = '';
+
+    pathParts.forEach(part => {
+        currentPath += part;
+        const folderElement = $(`.folder[data-path="${currentPath}"]`);
+        if (folderElement.length) {
+            folderElement.children('ul').slideDown(150); // Buka folder
+        }
+        currentPath += '/';
+    });
+}
+
+// Fungsi untuk menyembunyikan modal pencarian
+function hideFileSearchModal() {
+    $('#file-search-modal').fadeOut();
+    $('#file-search-input').val(''); // Reset input
+    $('#file-search-results').empty(); // Reset hasil
+}
+
+// Event listener untuk menutup modal
+$('#file-search-close').on('click', function() {
+    hideFileSearchModal();
+});
+
+// Event listener untuk input pencarian
+$('#file-search-input').on('input', function() {
+    console.log('aaa');
+    
+    const query = $(this).val().toLowerCase();
+    const results = [];
+
+    // Cari file di dalam openedTabs
+    for (const filename in openedTabs) {
+        if (filename.toLowerCase().includes(query)) {
+            results.push(filename);
+        }
+    }
+
+    // Tampilkan hasil pencarian
+    $('#file-search-results').empty();
+    results.forEach(filename => {
+        $('#file-search-results').append(`<li data-filename="${filename}" style="padding: 5px; cursor: pointer;">${filename}</li>`);
+    });
+});
+
+// Event listener untuk memilih file dari hasil pencarian
+$(document).on('click', '#file-search-results li', function() {
+    const filename = $(this).data('filename');
+    openTab(filename);
+    openFolderInSidebar(filename);
+    setActiveFileInSidebar(filename);
+    hideFileSearchModal();
+});
+
+// Keyboard shortcut untuk menampilkan modal pencarian (CTRL + P)
+document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        showFileSearchModal();
+    }
+});
+
+function setActiveFileInSidebar(filename) {
+    $('.file').removeClass('active'); // Hapus kelas active dari semua file
+    $(`.file[data-filename="${filename}"]`).addClass('active'); // Tambahkan kelas active ke file yang dipilih
+}
+
+$('#file-search-close').on('click', function () {
+    $('#file-search-modal').hide();
+});

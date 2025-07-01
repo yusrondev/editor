@@ -16,7 +16,7 @@ body {
 #chat-sidebar {
   display: flex;
   flex-direction: column;
-  width: 40%;
+  width: 50%;
   height: 100%;
   position: absolute;
   top: 0;
@@ -28,6 +28,8 @@ body {
   transition: opacity 0.2s ease;
   z-index: 9999;
   color: white !important;
+  font-family: "Roboto", sans-serif;
+  box-shadow: 37px 0px 70px 20px black;
 }
 
 #chat-sidebar.show {
@@ -51,7 +53,8 @@ body {
   width: 100%;
   color: white !important;
   font-weight: normal;
-  background-color: #2d3436 !important;
+  background-color: #1e1e1e !important;
+  border: 0px !important;
 }
 
 #chat-input::placeholder {
@@ -91,7 +94,6 @@ body {
   width: 20% !important;
   padding: 20px;
   border-radius: 8px;
-  width: 300px;
   color: white !important;
   position: relative;
   font-family: 'Lexend', sans-serif !important;
@@ -365,4 +367,47 @@ ul {
 
 code{
   color: #00cec9 !important;
+}
+
+#collapse-all-button{
+  display: none;
+  cursor: pointer;
+}
+
+.folder>span{
+  padding-left: 0px !important;
+}
+
+#quote-box{
+  background-color: #1e1e1e !important;
+}
+
+.file.active {
+    background-color: #2f2f2f; /* Warna latar belakang saat active */
+    color: white; /* Warna teks saat active */
+}
+
+#file-search-results li {
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #2d3436;
+  margin-bottom: 6px;
+  transition: background 0.2s;
+}
+
+#file-search-results li:hover {
+  background: #3d3d3d;
+}
+
+pre code {
+  background: #2d3436;
+  color: #dfe6e9;
+  padding: 10px;
+  border-radius: 6px;
+  display: block;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  white-space: pre;
 }

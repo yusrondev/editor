@@ -19,14 +19,21 @@
     <script src="https://cdn.jsdelivr.net/npm/emmet-monaco-es@latest/dist/emmet-monaco.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 </head>
 
 <body>
     <div class="sidebar" id="sidebar">
-        <div id="project-name" style="font-weight: bold; margin-bottom: 10px;"></div>
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div id="project-name" style="font-weight: bold; margin-bottom: 10px;"></div>
+            </div>
+            <div class="col-auto">
+                <img id="collapse-all-button" src="/assets/icons/collapse.png" style="margin-top: -15px;width: 17px;" alt="">
+            </div>
+        </div>
         <div id="file-list"></div>
         <div id="sidebar-settings">
             <button id="settings-button" title="Pengaturan">⚙️</button>
